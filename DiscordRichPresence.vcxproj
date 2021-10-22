@@ -147,6 +147,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Dependencies\BASS\dll.cpp" />
+    <ClCompile Include="Dependencies\BASS\dll_image.cpp" />
     <ClCompile Include="Dependencies\discord\connection_win.cpp" />
     <ClCompile Include="Dependencies\discord\discord_register_win.cpp" />
     <ClCompile Include="Dependencies\discord\discord_rpc.cpp" />
@@ -159,6 +161,12 @@
     <ClCompile Include="src\vendor\imgui\imgui_impl_glfw_gl3.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Dependencies\BASS\api.h" />
+    <ClInclude Include="Dependencies\BASS\bass.h" />
+    <ClInclude Include="Dependencies\BASS\dll.h" />
+    <ClInclude Include="Dependencies\BASS\random.h" />
+    <ClInclude Include="Dependencies\BASS\sounds.h" />
+    <ClInclude Include="Dependencies\BASS\string_obfuscation.h" />
     <ClInclude Include="Dependencies\discord\backoff.h" />
     <ClInclude Include="Dependencies\discord\connection.h" />
     <ClInclude Include="Dependencies\discord\include\discord_register.h" />

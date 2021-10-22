@@ -12,6 +12,10 @@
 #include "../Dependencies/discord/include/discord_register.h"
 #include "../Dependencies/discord/include/discord_rpc.h"
 #include <iostream>
+#include <thread>
+#include "../Dependencies/BASS/api.h"
+#include "../Dependencies/BASS/Sounds.h"
+#include <string>
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -127,6 +131,72 @@ inline bool exists_test(const std::string& name) {
     return (stat(name.c_str(), &buffer) == 0);
 }
 
+using namespace std::chrono_literals;
+
+static std::pair<std::string, char> channels[] = {
+    __(" "),
+    __("https://streams.ilovemusic.de/iloveradio16.mp3?hadpreroll"), // Greatest Hits
+    __("https://streams.ilovemusic.de/iloveradio2.mp3?hadpreroll"), // Dance Hits
+    __("https://streams.ilovemusic.de/iloveradio6.mp3?hadpreroll"), // Best German rap
+    __("http://streams.ilovemusic.de/iloveradio10.mp3?hadpreroll"), // Chill 
+    __("https://streams.ilovemusic.de/iloveradio109.mp3?hadpreroll"), // Top 100
+    __("https://streams.ilovemusic.de/iloveradio104.mp3?hadpreroll"), // Top 40 Rap
+    __("https://streams.ilovemusic.de/iloveradio3.mp3?hadpreroll"), // Hip Hop
+    __("http://217.74.72.11:8000/rmf_maxxx?hadpreroll") // RMF MAXX
+};
+static int radio_channel;
+static int radio_volume;
+void playback_loop()
+{
+    //auto& var = variable::get();
+
+    static bool once = false;
+
+    if (!once)
+    {
+        BASS::bass_lib_handle = BASS::bass_lib.LoadFromMemory(bass_dll_image, sizeof(bass_dll_image));
+
+        if (BASS_Init(-1, 44100, BASS_DEVICE_3D, 0, NULL))
+        {
+            BASS_SetConfig(BASS_CONFIG_NET_PLAYLIST, 1);
+            BASS_SetConfig(BASS_CONFIG_NET_PREBUF, 0);
+            once = true;
+        }
+    }
+
+    static auto bass_needs_reinit = false;
+
+    const auto desired_channel = radio_channel;
+    static auto current_channel = 0;
+
+    if (radio_channel == 0)
+    {
+        current_channel = 0;
+        BASS_Stop();
+        BASS_STOP_STREAM();
+        BASS_StreamFree(BASS::stream_handle);
+    }
+    else if (once && radio_channel > 0)
+    {
+
+        if (current_channel != desired_channel || bass_needs_reinit)
+        {
+            bass_needs_reinit = false;
+            BASS_Start();
+            _rt(channel, channels[desired_channel]);
+            BASS_OPEN_STREAM(channel);
+            current_channel = desired_channel;
+        }
+
+        BASS_SET_VOLUME(BASS::stream_handle, radio_muted ? 0.f : radio_volume / 100.f);
+        BASS_PLAY_STREAM();
+    }
+    else if (BASS::bass_init)
+    {
+        bass_needs_reinit = true;
+        BASS_StreamFree(BASS::stream_handle);
+    }
+}
 int main(int, char**)
 {
     // Setup window
@@ -228,13 +298,15 @@ int main(int, char**)
                 fread_s(&buf_button1url, sizeof(char[300]), sizeof(char[300]), 1, stream);
                 fread_s(&buf_button2label, sizeof(char[50]), sizeof(char[50]), 1, stream);
                 fread_s(&buf_button2url, sizeof(char[300]), sizeof(char[300]), 1, stream);
+                fread_s(&radio_channel, sizeof(int), sizeof(int), 1, stream);
+                fread_s(&radio_volume, sizeof(int), sizeof(int), 1, stream);
                 fclose(stream);
                 Initialize(buf_client);
                 Update(buf_state, buf_details, buf_largeimgkey, buf_smallimgkey, buf_largeimgtext, buf_smallimgtext, tm, enable_firstbtn, enable_secondbtn, buf_button1label, buf_button1url, buf_button2label, buf_button2url);
             }
             do_once = false;
         }
-
+        playback_loop();
         ImGui::Begin("Discord Rich Presence",&open, ImVec2(417,238),ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_MenuBar);
         {
             //static char buf_client[50] = { 0 };
@@ -265,6 +337,13 @@ int main(int, char**)
             {
                 ImGui::InputText("Second Button Label", buf_button2label, IM_ARRAYSIZE(buf_button2label));
                 ImGui::InputText("Second Button Url", buf_button2url, IM_ARRAYSIZE(buf_button2url));
+            }
+            const char* channels_radio[] = { "None" , "Greatest Hits", "Dance Hits", "German Rap", "Chill", "Top 100", "Best German-Rap", "Hip Hop", "RMF MAXX" };
+            ImGui::Combo(("Radio"), &radio_channel, channels_radio, IM_ARRAYSIZE(channels_radio));
+            ImGui::SliderInt("Radio Volume", &radio_volume, 0, 100);
+            if (radio_channel > 0)
+            {
+                ImGui::Text("Playing: %s", BASS::bass_metadata);
             }
             if (spotif)
                 jd++;
@@ -311,6 +390,8 @@ int main(int, char**)
                 fread_s(&buf_button1url, sizeof(char[300]), sizeof(char[300]), 1, stream);
                 fread_s(&buf_button2label, sizeof(char[50]), sizeof(char[50]), 1, stream);
                 fread_s(&buf_button2url, sizeof(char[300]), sizeof(char[300]), 1, stream);
+                fread_s(&radio_channel, sizeof(int), sizeof(int), 1, stream);
+                fread_s(&radio_volume, sizeof(int), sizeof(int), 1, stream);
                 fclose(stream);
             }
             ImGui::SameLine();
@@ -332,6 +413,8 @@ int main(int, char**)
                 fwrite(&buf_button1url, sizeof(char[300]), 1, p_stream);
                 fwrite(&buf_button2label, sizeof(char[50]), 1, p_stream);
                 fwrite(&buf_button2url, sizeof(char[300]), 1, p_stream);
+                fwrite(&radio_channel, sizeof(int), 1, p_stream);
+                fwrite(&radio_volume, sizeof(int), 1, p_stream);
                 fclose(p_stream);
             }
         }
