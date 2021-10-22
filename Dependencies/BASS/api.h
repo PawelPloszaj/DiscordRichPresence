@@ -142,17 +142,6 @@ static VOID BASS_START_STREAM()
 
 static VOID BASS_SET_VOLUME(DWORD channel, float cvar_volume)
 {
-	/*
-	static float old_volume = 0.0f;
-	if ( old_volume != cvar_volume )
-	{
-		old_volume = cvar_volume;
-	}
-	else
-	{
-		return;
-	}
-	*/
 	BASS_ChannelSetAttribute(channel, BASS_ATTRIB_VOL, cvar_volume);
 }
 

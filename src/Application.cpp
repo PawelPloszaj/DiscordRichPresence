@@ -16,6 +16,9 @@
 #include "../Dependencies/BASS/api.h"
 #include "../Dependencies/BASS/Sounds.h"
 #include <string>
+#include <Psapi.h>
+#include <chrono>
+#include <thread>
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -59,15 +62,8 @@ void Shutdown()
 }
 
 std::string title_spotify;
-#include <Psapi.h>
-#include <chrono>
-#include <thread>
 
 void spotify() {
-    const static auto& spotify = true; //xD
-
-    if (!spotify)
-        return;
 
     static HWND spotify_hwnd = nullptr;
     static int last_hwnd_time = 0, last_title_time = 0;
@@ -75,7 +71,6 @@ void spotify() {
     sc++;
     /* hilariously overengineered solution to get fucking spotify song name */
     if ((!spotify_hwnd || spotify_hwnd == INVALID_HANDLE_VALUE) && last_hwnd_time <= sc) {
-        /* game freezes if we try to open a handle 300 times per second (understandable) so this workaround will do */
 
         last_hwnd_time = sc + 10;
         for (HWND hwnd = GetTopWindow(0); hwnd; hwnd = GetWindow(hwnd, GW_HWNDNEXT)) {
@@ -97,7 +92,7 @@ void spotify() {
 
             (CloseHandle)(spotify_handle);
 
-            /* fucking finally found spotify */
+            /* finally found spotify */
             if (sane_filename.find((L"Spotify.exe")) != std::string::npos)
                 spotify_hwnd = hwnd;
         }
@@ -148,7 +143,6 @@ static int radio_channel;
 static int radio_volume;
 void playback_loop()
 {
-    //auto& var = variable::get();
 
     static bool once = false;
 
@@ -241,7 +235,7 @@ int main(int, char**)
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
-    // 
+    
     ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\arial.ttf", 13.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\arial-unicode-ms.ttf", 13.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
     IM_ASSERT(font != NULL);
@@ -280,7 +274,8 @@ int main(int, char**)
         if (do_once) 
         {
             HideConsole();
-            if (exists_test("config.ini")) {
+            if (exists_test("config.ini")) 
+            {
                 FILE* stream;
                 fopen_s(&stream, "config.ini", "r+");
                 fseek(stream, 0, SEEK_SET);
@@ -306,22 +301,15 @@ int main(int, char**)
             }
             do_once = false;
         }
-        playback_loop();
+        playback_loop(); //Radio Function
         ImGui::Begin("Discord Rich Presence",&open, ImVec2(417,238),ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_MenuBar);
         {
-            //static char buf_client[50] = { 0 };
             ImGui::InputText("Client ID", buf_client, IM_ARRAYSIZE(buf_client));
-            //static char buf_state[300] = { 0 };
             ImGui::InputText("State", buf_state, IM_ARRAYSIZE(buf_state));
-            //static char buf_details[300] = { 0 };
             ImGui::InputText("Details", buf_details, IM_ARRAYSIZE(buf_details));
-            //static char buf_largeimgkey[300] = { 0 };
             ImGui::InputText("Large Image Key", buf_largeimgkey, IM_ARRAYSIZE(buf_largeimgkey));
-            //static char buf_smallimgkey[300] = { 0 };
             ImGui::InputText("Small Image Key", buf_smallimgkey, IM_ARRAYSIZE(buf_smallimgkey));
-            //static char buf_largeimgtext[300] = { 0 };
             ImGui::InputText("Large Image Text", buf_largeimgtext, IM_ARRAYSIZE(buf_largeimgtext));
-            //static char buf_smallimgtext[300] = { 0 };
             ImGui::InputText("Small Image Text", buf_smallimgtext, IM_ARRAYSIZE(buf_smallimgtext));
             ImGui::Checkbox("Spotify State", &spotif);
             ImGui::SameLine();
@@ -338,41 +326,51 @@ int main(int, char**)
                 ImGui::InputText("Second Button Label", buf_button2label, IM_ARRAYSIZE(buf_button2label));
                 ImGui::InputText("Second Button Url", buf_button2url, IM_ARRAYSIZE(buf_button2url));
             }
+
             const char* channels_radio[] = { "None" , "Greatest Hits", "Dance Hits", "German Rap", "Chill", "Top 100", "Best German-Rap", "Hip Hop", "RMF MAXX" };
             ImGui::Combo(("Radio"), &radio_channel, channels_radio, IM_ARRAYSIZE(channels_radio));
             ImGui::SliderInt("Radio Volume", &radio_volume, 0, 100);
-            if (radio_channel > 0)
+            if (radio_channel > 0) 
             {
                 ImGui::Text("Playing: %s", BASS::bass_metadata);
             }
-            if (spotif)
-                jd++;
 
-            if (spotif && jd == 60) {
+            if (spotif)
+            {
+                jd++;
+            }
+
+            if (spotif && jd == 60) // my update interval
+            {
                 spotify();
                 std::string text;
-                if (title_spotify.empty()) {
+                if (title_spotify.empty()) 
+                {
                     text = "";
-                    if (one_time) {
+                    if (one_time) 
+                    {
                         Update(buf_state, buf_details, buf_largeimgkey, buf_smallimgkey, buf_largeimgtext, buf_smallimgtext, tm, enable_firstbtn, enable_secondbtn, buf_button1label, buf_button1url, buf_button2label, buf_button2url);
                         one_time = false;
                     }
                 }
-                else { 
-                text = "Now listening: \n";
-                std::string txt = text + title_spotify;
-                Update(txt.c_str(), buf_details, buf_largeimgkey, buf_smallimgkey, buf_largeimgtext, buf_smallimgtext, tm, enable_firstbtn, enable_secondbtn, buf_button1label, buf_button1url, buf_button2label, buf_button2url);
-                one_time = true;
+                else 
+                { 
+                    text = "Now listening: \n";
+                    std::string txt = text + title_spotify;
+                    Update(txt.c_str(), buf_details, buf_largeimgkey, buf_smallimgkey, buf_largeimgtext, buf_smallimgtext, tm, enable_firstbtn, enable_secondbtn, buf_button1label, buf_button1url, buf_button2label, buf_button2url);
+                    one_time = true;
                 }
-                jd = 0;
+                jd = 0; //reset variable
             }
 
-            if (ImGui::Button("Update Discord Rich Presence")) {
+            if (ImGui::Button("Update Discord Rich Presence")) 
+            {
                 Initialize(buf_client);
                 Update(buf_state, buf_details, buf_largeimgkey, buf_smallimgkey, buf_largeimgtext, buf_smallimgtext, tm, enable_firstbtn, enable_secondbtn, buf_button1label, buf_button1url, buf_button2label, buf_button2url);
             }
             ImGui::SameLine();
-            if (ImGui::Button("Load Config")) {
+            if (ImGui::Button("Load Config")) 
+            {
                 FILE* stream;
                 fopen_s(&stream, "config.ini", "r+");
                 fseek(stream, 0, SEEK_SET);
@@ -395,7 +393,8 @@ int main(int, char**)
                 fclose(stream);
             }
             ImGui::SameLine();
-            if (ImGui::Button("Save Config")) {
+            if (ImGui::Button("Save Config")) 
+            {
                 FILE* p_stream;
                 fopen_s(&p_stream, "config.ini", "w+");
                 fseek(p_stream, 0, SEEK_SET);
