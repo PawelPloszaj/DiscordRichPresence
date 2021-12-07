@@ -19,6 +19,8 @@
 #include <Psapi.h>
 #include <chrono>
 #include <thread>
+#define STB_IMAGE_IMPLEMENTATION
+#include "../Dependencies/stb_image.h"
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -206,8 +208,11 @@ int main(int, char**)
 #if __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
-
     GLFWwindow* window = glfwCreateWindow(480, 300, "Discord Rich Presence by Pafffcio#0733", NULL, NULL);
+    //GLFWimage images[1]; images[0].pixels = stbi_load("/DiscordRichPresence.rc/GLFW_ICON.ico", &images[0].width, &images[0].height, 0, 4);
+    //pack://application:,,,/resource;component/icon1.ico
+    //glfwSetWindowIcon(window, 1, images);
+    //stbi_image_free(images[0].pixels);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
     glewInit();
